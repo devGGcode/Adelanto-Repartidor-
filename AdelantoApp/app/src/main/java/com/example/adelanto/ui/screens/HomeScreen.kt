@@ -12,8 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
@@ -22,7 +20,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Receipt
-import androidx.compose.material.icons.filled.Trash2
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -73,7 +71,8 @@ import com.example.adelanto.ui.viewmodel.HomeViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(repo: OperationRepository, nav: NavController) {
-    val vm = androidx.lifecycle.viewmodel.compose.viewModel(factory = HomeViewModel.factory(repo))
+    // Corregido: Especificamos explícitamente el tipo <HomeViewModel> para solucionar la ambigüedad
+    val vm: HomeViewModel = androidx.lifecycle.viewmodel.compose.viewModel(factory = HomeViewModel.factory(repo))
     val state by vm.uiState.collectAsState()
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val prefs = ctx.getSharedPreferences("adelanto", android.content.Context.MODE_PRIVATE)
@@ -159,7 +158,6 @@ fun HomeScreen(repo: OperationRepository, nav: NavController) {
                     }
                 }
             }
-
             // Cashbox card
             item {
                 Card(
@@ -293,11 +291,11 @@ fun OpCard(op: com.example.adelanto.data.db.OperationEntity, onDelete: () -> Uni
                         Spacer(Modifier.weight(1f))
                     }
                     IconButton(onClick = onDelete, modifier = Modifier.size(28.dp)) {
-                        Icon(Icons.Filled.Trash2, contentDescription = "Eliminar", tint = appMuted(), modifier = Modifier.size(16.dp))
+                        // Corregido: Cambiado Icons.Filled.Trash2 por Icons.Filled.Delete de Android nativo
+                        Icon(Icons.Filled.Delete, contentDescription = "Eliminar", tint = appMuted(), modifier = Modifier.size(16.dp))
                     }
                 }
             }
         }
     }
 }
-
