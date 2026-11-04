@@ -37,7 +37,8 @@ import com.example.adelanto.ui.viewmodel.HistoryViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryScreen(repo: OperationRepository, nav: NavController) {
-    val vm = androidx.lifecycle.viewmodel.compose.viewModel(factory = HistoryViewModel.factory(repo))
+    // Corregido: Especificamos explícitamente el tipo <HistoryViewModel> para resolver la ambigüedad
+    val vm: HistoryViewModel = androidx.lifecycle.viewmodel.compose.viewModel(factory = HistoryViewModel.factory(repo))
     val state by vm.uiState.collectAsState()
 
     Scaffold(
@@ -54,6 +55,8 @@ fun HistoryScreen(repo: OperationRepository, nav: NavController) {
             )
         }
     ) { padding ->
+        val daysList = state.days
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -61,43 +64,49 @@ fun HistoryScreen(repo: OperationRepository, nav: NavController) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            var lastWeek: Long? = null
-            state.days.forEach { d ->
-                if (lastWeek != d.weekStart) {
-                    lastWeek = d.weekStart
-                    item(key = "week_${d.weekStart}") {
-                        Text(
-                            "Semana: ${WeekUtils.formatWeekRange(d.weekStart)}",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
-                        )
-                    }
-                }
-                item(key = d.dayStart) {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { nav.navigate("dayDetail/${d.dayStart}") }
-                    ) {
-                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(d.label, fontWeight = FontWeight.SemiBold)
-                                Text("${d.count} operaciones", style = MaterialTheme.typography.bodySmall)
-                            }
-                            Text(
-                                WeekUtils.formatMoney(d.total),
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                }
-            }
-            if (state.days.isEmpty()) {
+            if (daysList.isEmpty()) {
                 item {
                     Text("Sin historial aún", modifier = Modifier.padding(16.dp))
+                }
+            } else {
+                var lastWeek: Long? = null
+                
+                // Corregido: Usamos un bucle clásico indexado para inyectar los elementos estructuradamente en el LazyColumn
+                for (i in daysList.indices) {
+                    val d = daysList[i]
+                    
+                    if (lastWeek != d.weekStart) {
+                        lastWeek = d.weekStart
+                        item(key = "week_${d.weekStart}_$i") {
+                            Text(
+                                "Semana: ${WeekUtils.formatWeekRange(d.weekStart)}",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                              )
+                        }
+                    }
+                    
+                    item(key = "day_${d.dayStart}_$i") {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { nav.navigate("dayDetail/${d.dayStart}") }
+                        ) {
+                            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(d.label, fontWeight = FontWeight.SemiBold)
+                                    Text("${d.count} operaciones", style = MaterialTheme.typography.bodySmall)
+                                }
+                                Text(
+                                    WeekUtils.formatMoney(d.total),
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
