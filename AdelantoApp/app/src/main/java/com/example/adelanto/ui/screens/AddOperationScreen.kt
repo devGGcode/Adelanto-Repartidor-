@@ -126,7 +126,6 @@ fun AddOperationScreen(repo: OperationRepository, nav: NavController) {
                 )
                 Spacer(Modifier.height(12.dp))
             }
-
             if (opType == OpType.COLLECTION || opType == OpType.FULL) {
                 OutlinedTextField(
                     value = collection,
@@ -189,12 +188,15 @@ fun AddOperationScreen(repo: OperationRepository, nav: NavController) {
                             scope.launch {
                                 val linked = linkedId?.let { id -> pending.find { it.id == id } }
                                 if (linked != null) {
-                                    linked.type = OpType.FULL
-                                    linked.collectionAmount = c
-                                    linked.profit = c - (linked.paymentAmount ?: 0L)
-                                    linked.status = "resolved"
-                                    if (note.isNotBlank()) linked.note = (linked.note?.let { "$it · " } ?: "") + note
-                                    repo.update(linked)
+                                    // Corregido: Creamos una copia con las nuevas propiedades para Room
+                                    val updatedLinked = linked.copy(
+                                        type = OpType.FULL,
+                                        collectionAmount = c,
+                                        profit = c - (linked.paymentAmount ?: 0L),
+                                        status = "resolved",
+                                        note = if (note.isNotBlank()) (linked.note?.let { "$it · " } ?: "") + note else linked.note
+                                    )
+                                    repo.update(updatedLinked)
                                 } else {
                                     repo.insert(OperationEntity(
                                         type = OpType.COLLECTION,
