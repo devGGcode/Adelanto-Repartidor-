@@ -8,25 +8,34 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # Fijamos a ubuntu-24.04 para evitar incompatibilidades con la nueva version 26
+    runs-on: ubuntu-24.04
 
     steps:
     - name: Descargar el codigo del repositorio
       uses: actions/checkout@v4
 
     - name: Configurar Java JDK 17
-      uses: actions/setup-java@v4
+      # Actualizado a v5 para eliminar la advertencia de deprecacion
+      uses: actions/setup-java@v5
       with:
         java-version: '17'
         distribution: 'temurin'
         cache: gradle
+
+    - name: Validar archivo Gradle wrapper
+      # Este paso corrige errores si los archivos internos de Gradle perdieron formato
+      run: |
+        cd AdelantoApp
+        if [ ! -f gradlew ]; then gradle wrapper; fi
 
     - name: Dar permisos de ejecucion a Gradle
       run: chmod +x ./gradlew
       working-directory: AdelantoApp
 
     - name: Compilar APK de prueba (Debug)
-      run: ./gradlew assembleDebug
+      # Añadimos --no-daemon para optimizar el uso de memoria RAM en la nube
+      run: ./gradlew assembleDebug --no-daemon
       working-directory: AdelantoApp
 
     - name: Subir el archivo APK compilado a GitHub
