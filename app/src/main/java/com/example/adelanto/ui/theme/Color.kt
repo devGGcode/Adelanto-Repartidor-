@@ -1,5 +1,7 @@
 package com.example.adelanto.ui.theme
 
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
@@ -41,22 +43,56 @@ object AppColors {
     val HeroGradientDark = Brush.linearGradient(listOf(Color(0xFF4338CA), Color(0xFF2563EB)))
 }
 
-fun isDark(): Boolean = androidx.compose.foundation.isSystemInDarkTheme()
+@Composable
+fun isDark(): Boolean = isSystemInDarkTheme()
 
+@Composable
 fun appBg() = if (isDark()) AppColors.BgDark else AppColors.BgLight
+
+@Composable
 fun appSurface() = if (isDark()) AppColors.SurfaceDark else AppColors.SurfaceLight
+
+@Composable
 fun appCard() = if (isDark()) AppColors.SurfaceCardDark else AppColors.SurfaceCardLight
+
+@Composable
 fun appText() = if (isDark()) AppColors.TextMainDark else AppColors.TextMainLight
+
+@Composable
 fun appMuted() = if (isDark()) AppColors.TextMutedDark else AppColors.TextMutedLight
+
+@Composable
 fun appBorder() = if (isDark()) AppColors.BorderDark else AppColors.BorderLight
+
+@Composable
 fun appPrimary() = if (isDark()) AppColors.PrimaryDark else AppColors.PrimaryLight
+
+@Composable
 fun appPrimaryHover() = if (isDark()) AppColors.PrimaryHoverDark else AppColors.PrimaryHoverLight
+
+@Composable
 fun appPrimaryLight() = if (isDark()) AppColors.PrimaryLightBgDark else AppColors.PrimaryLightBg
+
+@Composable
 fun appSuccess() = if (isDark()) AppColors.SuccessDark else AppColors.SuccessLight
+
+@Composable
 fun appSuccessBg() = if (isDark()) AppColors.SuccessBgDark else AppColors.SuccessBgLight
+
+@Composable
 fun appDanger() = if (isDark()) AppColors.DangerDark else AppColors.DangerLight
+
+@Composable
 fun appDangerBg() = if (isDark()) AppColors.DangerBgDark else AppColors.DangerBgLight
+
+@Composable
 fun appWarningBg() = if (isDark()) AppColors.WarningBgDark else AppColors.WarningBgLight
+
+@Composable
 fun appWarningText() = if (isDark()) AppColors.WarningTextDark else AppColors.WarningTextLight
+
+@Composable
 fun appHeroGradient() = if (isDark()) AppColors.HeroGradientDark else AppColors.HeroGradientLight
-fun appShadow() = if (isDark()) androidx.compose.ui.graphics.Color(0x80000000) else androidx.compose.ui.graphics.Color(0x1A000000)
+
+@Composable
+fun appShadow() = if (isDark()) Color(0x80000000) else Color(0x1A000000)
