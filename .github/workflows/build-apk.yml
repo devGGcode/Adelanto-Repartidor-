@@ -1,45 +1,55 @@
-name: Compilar APK Adelanto Repartidor
+name: Build APK
 
 on:
+  workflow_dispatch:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches: [ main, master ]
 
 jobs:
   build:
-    # Fijamos a ubuntu-24.04 para evitar incompatibilidades con la nueva version 26
-    runs-on: ubuntu-24.04
-
+    runs-on: ubuntu-latest
     steps:
-    - name: Descargar el codigo del repositorio
-      uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Configurar Java JDK 17
-      # Actualizado a v5 para eliminar la advertencia de deprecacion
-      uses: actions/setup-java@v5
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        cache: gradle
+      - name: Setup Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
 
-    - name: Validar archivo Gradle wrapper
-      # Este paso corrige errores si los archivos internos de Gradle perdieron formato
-      run: |
-        cd AdelantoApp
-        if [ ! -f gradlew ]; then gradle wrapper; fi
+      - name: Detectar proyecto
+        id: detect
+        shell: bash
+        run: |
+          echo "== Contenido de la raiz =="
+          ls -la
+          DIR=""
+          for d in AdelantoApp . ; do
+            if [ -f "$d/settings.gradle.kts" ] && [ -f "$d/gradlew" ]; then
+              DIR="$d"
+              break
+            fi
+          done
+          if [ -z "$DIR" ]; then
+            echo "::error::No se encontro settings.gradle.kts + gradlew en el repo"
+            find . -name "settings.gradle.kts" -o -name "gradlew" | head -50
+            exit 1
+          fi
+          echo "Proyecto encontrado en: $DIR"
+          echo "dir=$DIR" >> "$GITHUB_OUTPUT"
 
-    - name: Dar permisos de ejecucion a Gradle
-      run: chmod +x ./gradlew
-      working-directory: AdelantoApp
+      - name: Compilar APK
+        shell: bash
+        working-directory: ${{ steps.detect.outputs.dir }}
+        run: |
+          sed -i 's/\r$//' gradlew
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
-    - name: Compilar APK de prueba (Debug)
-      # Añadimos --no-daemon para optimizar el uso de memoria RAM en la nube
-      run: ./gradlew assembleDebug --no-daemon
-      working-directory: AdelantoApp
-
-    - name: Subir el archivo APK compilado a GitHub
-      uses: actions/upload-artifact@v4
-      with:
-        name: Adelanto-Repartidor-Instalable
-        path: AdelantoApp/app/build/outputs/apk/debug/app-debug.apk
+      - name: Subir APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: adelanto-apk
+          path: '**/build/outputs/apk/debug/*.apk'
+          if-no-files-found: error
