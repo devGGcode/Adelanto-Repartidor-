@@ -1,3 +1,13 @@
 <resources>
     <style name="Theme.Adelanto" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!-- ventana flotante para registrar una operación desde el tile -->
+    <style name="Theme.Adelanto.QuickAdd" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:windowCloseOnTouchOutside">true</item>
+        <item name="android:windowAnimationStyle">@android:style/Animation.Dialog</item>
+    </style>
 </resources>

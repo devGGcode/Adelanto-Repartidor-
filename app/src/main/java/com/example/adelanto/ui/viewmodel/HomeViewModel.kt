@@ -37,6 +37,10 @@ class HomeViewModel(private val repo: OperationRepository) : ViewModel() {
 
     fun delete(op: OperationEntity) = viewModelScope.launch { repo.delete(op) }
 
+    fun markConversionDone(op: OperationEntity, total: Boolean) = viewModelScope.launch {
+        repo.update(op.copy(conversionDone = true, conversionTotal = total))
+    }
+
     companion object {
         fun factory(repo: OperationRepository) = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")

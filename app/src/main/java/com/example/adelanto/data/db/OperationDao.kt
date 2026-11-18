@@ -33,6 +33,10 @@ interface OperationDao {
     @Query("SELECT * FROM operations WHERE weekStart = :weekStart ORDER BY timestamp DESC")
     suspend fun getByWeek(weekStart: Long): List<OperationEntity>
 
-    @Query("SELECT * FROM operations WHERE type = 'PAYMENT' AND weekStart = :weekStart AND status = 'pending' ORDER BY timestamp DESC")
-    suspend fun getPendingPayments(weekStart: Long): List<OperationEntity>
+    /**
+     * Solo pagos SIN vincular: un pago que ya fue vinculado a un cobro se convierte en FULL
+     * y deja de tener status "pending", así que no vuelve a aparecer en esta lista.
+     */
+    @Query("SELECT * FROM operations WHERE type = 'PAYMENT' AND status = 'pending' AND weekStart = :weekStart ORDER BY timestamp DESC")
+    suspend fun getUnlinkedPendingPayments(weekStart: Long): List<OperationEntity>
 }

@@ -32,14 +32,21 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.adelanto.data.db.OpType
 import com.example.adelanto.data.db.OperationEntity
+import com.example.adelanto.data.db.PayMethod
 import com.example.adelanto.data.repository.OperationRepository
 import com.example.adelanto.domain.WeekUtils
+import com.example.adelanto.ui.theme.appPrimary
+import com.example.adelanto.ui.theme.appPrimaryLight
+import com.example.adelanto.ui.theme.appText
+import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddOperationScreen(repo: OperationRepository, nav: NavController) {
     var opType by remember { mutableStateOf(OpType.FULL) }
+    var method by remember { mutableStateOf(PayMethod.EFECTIVO) }
+    var collectionMethod by remember { mutableStateOf(PayMethod.EFECTIVO) }
     var payment by remember { mutableStateOf("") }
     var collection by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
@@ -49,10 +56,11 @@ fun AddOperationScreen(repo: OperationRepository, nav: NavController) {
     var expanded by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    // carga los pagos pendientes de la semana cuando se elige COBRO
-    androidx.compose.runtime.LaunchedEffect(opType) {
+    // carga solo los pagos SIN vincular, y refresca cada vez que se abre el menú
+    androidx.compose.runtime.LaunchedEffect(opType, expanded) {
         if (opType == OpType.COLLECTION) {
             pending = repo.getPendingPayments(WeekUtils.weekStartMillis())
+            if (linkedId != null && pending.none { it.id == linkedId }) linkedId = null
         }
     }
 
@@ -73,29 +81,83 @@ fun AddOperationScreen(repo: OperationRepository, nav: NavController) {
         ) {
             Text("Tipo de operación", style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(8.dp))
+            val segColors = SegmentedButtonDefaults.colors(
+                activeContainerColor = appPrimaryLight(),
+                activeContentColor = appPrimary(),
+                inactiveContainerColor = Color.Transparent,
+                inactiveContentColor = appText()
+            )
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                 SegmentedButton(
                     selected = opType == OpType.PAYMENT,
                     onClick = { opType = OpType.PAYMENT },
-                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3)
+                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
+                    colors = segColors
                 ) { Text("Pago") }
                 SegmentedButton(
                     selected = opType == OpType.COLLECTION,
                     onClick = { opType = OpType.COLLECTION },
-                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3)
+                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
+                    colors = segColors
                 ) { Text("Cobro") }
                 SegmentedButton(
                     selected = opType == OpType.FULL,
                     onClick = { opType = OpType.FULL },
-                    shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3)
+                    shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
+                    colors = segColors
                 ) { Text("Pago+Cobro") }
             }
             Spacer(Modifier.height(16.dp))
 
+            Text(
+                when (opType) {
+                    OpType.PAYMENT -> "Método de pago"
+                    OpType.COLLECTION -> "Método del cobro"
+                    OpType.FULL -> "Método del pago"
+                },
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(Modifier.height(8.dp))
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                SegmentedButton(
+                    selected = method == PayMethod.EFECTIVO,
+                    onClick = { method = PayMethod.EFECTIVO },
+                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                    colors = segColors
+                ) { Text("Efectivo") }
+                SegmentedButton(
+                    selected = method == PayMethod.TRANSFERENCIA,
+                    onClick = { method = PayMethod.TRANSFERENCIA },
+                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                    colors = segColors
+                ) { Text("Transferencia") }
+            }
+            Spacer(Modifier.height(16.dp))
+
+            if (opType == OpType.FULL) {
+                Text("Método del cobro", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(8.dp))
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    SegmentedButton(
+                        selected = collectionMethod == PayMethod.EFECTIVO,
+                        onClick = { collectionMethod = PayMethod.EFECTIVO },
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                        colors = segColors
+                    ) { Text("Efectivo") }
+                    SegmentedButton(
+                        selected = collectionMethod == PayMethod.TRANSFERENCIA,
+                        onClick = { collectionMethod = PayMethod.TRANSFERENCIA },
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                        colors = segColors
+                    ) { Text("Transferencia") }
+                }
+                Spacer(Modifier.height(16.dp))
+            }
+
             if (opType == OpType.COLLECTION) {
                 ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
                     OutlinedTextField(
-                        value = linkedId?.let { id -> pending.find { it.id == id }?.let { "Pago $" + it.paymentAmount } } ?: "Cobro independiente",
+                        value = linkedId?.let { id -> pending.find { it.id == id }?.let { "Pago " + WeekUtils.formatMoney(it.paymentAmount ?: 0L) } } ?: "Cobro independiente",
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Vincular a pago pendiente") },
@@ -107,9 +169,21 @@ fun AddOperationScreen(repo: OperationRepository, nav: NavController) {
                             text = { Text("Cobro independiente (sin vincular)") },
                             onClick = { linkedId = null; expanded = false }
                         )
+                        if (pending.isEmpty()) {
+                            DropdownMenuItem(
+                                text = { Text("No hay pagos pendientes sin vincular") },
+                                onClick = {},
+                                enabled = false
+                            )
+                        }
                         pending.forEach { p ->
                             DropdownMenuItem(
-                                text = { Text("Pago $" + (p.paymentAmount ?: 0) + " - " + WeekUtils.formatDate(p.timestamp)) },
+                                text = {
+                                    Text(
+                                        "Pago " + WeekUtils.formatMoney(p.paymentAmount ?: 0L) +
+                                            " · " + WeekUtils.formatDate(p.timestamp)
+                                    )
+                                },
                                 onClick = { linkedId = p.id; expanded = false }
                             )
                         }
@@ -185,7 +259,9 @@ fun AddOperationScreen(repo: OperationRepository, nav: NavController) {
                                         status = "pending",
                                         note = note.ifBlank { null },
                                         timestamp = System.currentTimeMillis(),
-                                        weekStart = WeekUtils.weekStartMillis()
+                                        weekStart = WeekUtils.weekStartMillis(),
+                                        method = method,
+                                        collectionMethod = method
                                     )
                                 )
                                 nav.popBackStack()
@@ -203,7 +279,8 @@ fun AddOperationScreen(repo: OperationRepository, nav: NavController) {
                                         collectionAmount = c,
                                         profit = c - (linked.paymentAmount ?: 0L),
                                         status = "resolved",
-                                        note = if (note.isNotBlank()) (linked.note?.let { "$it · " } ?: "") + note else linked.note
+                                        note = if (note.isNotBlank()) (linked.note?.let { "$it · " } ?: "") + note else linked.note,
+                                        collectionMethod = method
                                     )
                                     repo.update(updatedLinked)
                                 } else {
@@ -216,7 +293,9 @@ fun AddOperationScreen(repo: OperationRepository, nav: NavController) {
                                             status = "standalone",
                                             note = note.ifBlank { null },
                                             timestamp = System.currentTimeMillis(),
-                                            weekStart = WeekUtils.weekStartMillis()
+                                            weekStart = WeekUtils.weekStartMillis(),
+                                            method = method,
+                                            collectionMethod = method
                                         )
                                     )
                                 }
@@ -238,7 +317,9 @@ fun AddOperationScreen(repo: OperationRepository, nav: NavController) {
                                         status = "resolved",
                                         note = note.ifBlank { null },
                                         timestamp = System.currentTimeMillis(),
-                                        weekStart = WeekUtils.weekStartMillis()
+                                        weekStart = WeekUtils.weekStartMillis(),
+                                        method = method,
+                                        collectionMethod = collectionMethod
                                     )
                                 )
                                 nav.popBackStack()

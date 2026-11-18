@@ -12,6 +12,6 @@ class OperationRepository(private val dao: OperationDao) {
     suspend fun insert(op: OperationEntity): Long = dao.insert(op)
     suspend fun update(op: OperationEntity) = dao.update(op)
     suspend fun delete(op: OperationEntity) = dao.delete(op)
-    suspend fun getPendingPayments(ws: Long): List<OperationEntity> = dao.getPendingPayments(ws)
+    suspend fun getPendingPayments(ws: Long): List<OperationEntity> = dao.getUnlinkedPendingPayments(ws)
     suspend fun getByWeek(ws: Long): List<OperationEntity> = dao.getByWeek(ws)
 }

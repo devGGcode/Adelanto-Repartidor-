@@ -13,8 +13,8 @@ android {
         applicationId = "com.example.adelanto"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 23
+        versionName = "1.22"
     }
 
     buildTypes {

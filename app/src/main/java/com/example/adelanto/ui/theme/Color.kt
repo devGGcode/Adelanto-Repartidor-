@@ -1,7 +1,7 @@
 package com.example.adelanto.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
@@ -43,8 +43,11 @@ object AppColors {
     val HeroGradientDark = Brush.linearGradient(listOf(Color(0xFF4338CA), Color(0xFF2563EB)))
 }
 
+/** tema oscuro elegido por el usuario (o el del sistema si nunca lo cambió) */
+val LocalDarkTheme = staticCompositionLocalOf { false }
+
 @Composable
-fun isDark(): Boolean = isSystemInDarkTheme()
+fun isDark(): Boolean = LocalDarkTheme.current
 
 @Composable
 fun appBg() = if (isDark()) AppColors.BgDark else AppColors.BgLight

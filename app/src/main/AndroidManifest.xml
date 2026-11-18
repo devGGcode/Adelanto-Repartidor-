@@ -24,6 +24,14 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".QuickAddActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.Adelanto.QuickAdd"
+            android:windowSoftInputMode="adjustResize" />
+
         <service
             android:name=".tile.QuickEntryTileService"
             android:exported="true"

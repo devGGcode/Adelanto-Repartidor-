@@ -13,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -20,24 +21,42 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.adelanto.data.repository.OperationRepository
+import com.example.adelanto.data.repository.DebtRepository
 import com.example.adelanto.ui.screens.AddOperationScreen
+import com.example.adelanto.ui.screens.AddDebtScreen
+import com.example.adelanto.ui.screens.DebtsScreen
 import com.example.adelanto.ui.screens.HomeScreen
 import com.example.adelanto.ui.screens.HistoryScreen
 import com.example.adelanto.ui.screens.DayDetailScreen
+import com.example.adelanto.ui.screens.WeekSummaryScreen
 import com.example.adelanto.ui.theme.AdelantoTheme
 
 class MainActivity : ComponentActivity() {
     private val repo: OperationRepository by lazy {
         (application as AdelantoApplication).repository
     }
+    private val debtRepo: DebtRepository by lazy {
+        (application as AdelantoApplication).debtRepository
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val openAdd = intent?.action == "com.example.adelanto.ACTION_ADD"
+        val prefs = getSharedPreferences("adelanto", MODE_PRIVATE)
         setContent {
-            AdelantoTheme {
+            val systemDark = isSystemInDarkTheme()
+            var darkTheme by remember { mutableStateOf(prefs.getBoolean("dark_mode", systemDark)) }
+            AdelantoTheme(darkTheme = darkTheme) {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    AppNav(repo, openAdd)
+                    AppNav(
+                        repo = repo,
+                        debtRepo = debtRepo,
+                        openAddInitially = openAdd,
+                        onToggleTheme = {
+                            darkTheme = !darkTheme
+                            prefs.edit().putBoolean("dark_mode", darkTheme).apply()
+                        }
+                    )
                 }
             }
         }
@@ -51,7 +70,12 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun AppNav(repo: OperationRepository, openAddInitially: Boolean) {
+fun AppNav(
+    repo: OperationRepository,
+    debtRepo: DebtRepository,
+    openAddInitially: Boolean,
+    onToggleTheme: () -> Unit
+) {
     val nav = rememberNavController()
     var handled by remember { mutableStateOf(false) }
     LaunchedEffect(openAddInitially) {
@@ -61,8 +85,10 @@ fun AppNav(repo: OperationRepository, openAddInitially: Boolean) {
         }
     }
     NavHost(navController = nav, startDestination = "home") {
-        composable("home") { HomeScreen(repo, nav) }
+        composable("home") { HomeScreen(repo, debtRepo, nav, onToggleTheme) }
         composable("add") { AddOperationScreen(repo, nav) }
+        composable("debts") { DebtsScreen(debtRepo, nav) }
+        composable("addDebt") { AddDebtScreen(debtRepo, nav) }
         composable("history") { HistoryScreen(repo, nav) }
         composable(
             "dayDetail/{dayStart}",
@@ -70,6 +96,13 @@ fun AppNav(repo: OperationRepository, openAddInitially: Boolean) {
         ) { back ->
             val ds = back.arguments?.getLong("dayStart") ?: 0L
             DayDetailScreen(repo, ds, nav)
+        }
+        composable(
+            "weekSummary/{weekStart}",
+            arguments = listOf(navArgument("weekStart") { type = NavType.LongType })
+        ) { back ->
+            val ws = back.arguments?.getLong("weekStart") ?: 0L
+            WeekSummaryScreen(repo, ws, nav)
         }
     }
 }

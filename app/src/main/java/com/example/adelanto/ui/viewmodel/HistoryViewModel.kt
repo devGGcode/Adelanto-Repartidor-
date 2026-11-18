@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.adelanto.data.db.OperationEntity
 import com.example.adelanto.data.repository.OperationRepository
+import com.example.adelanto.domain.OperationUtils
 import com.example.adelanto.domain.WeekUtils
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -17,6 +18,8 @@ data class DaySummary(
     val weekStart: Long,
     val label: String,
     val total: Long,
+    val efectivo: Long,
+    val transfer: Long,
     val count: Int
 )
 
@@ -30,11 +33,15 @@ class HistoryViewModel(private val repo: OperationRepository) : ViewModel() {
             flow {
                 val days = all.groupBy { WeekUtils.dayStartMillis(it.timestamp) }
                     .map { (ds, ops) ->
+                        val efectivo = ops.sumOf { OperationUtils.efectivo(it) }
+                        val transfer = ops.sumOf { OperationUtils.transferencia(it) }
                         DaySummary(
                             dayStart = ds,
                             weekStart = ops.first().weekStart,
                             label = WeekUtils.formatDay(ds),
-                            total = ops.sumOf { it.profit },
+                            total = efectivo + transfer,
+                            efectivo = efectivo,
+                            transfer = transfer,
                             count = ops.size
                         )
                     }

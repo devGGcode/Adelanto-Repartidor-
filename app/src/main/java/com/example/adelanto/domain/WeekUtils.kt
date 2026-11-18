@@ -34,14 +34,63 @@ object WeekUtils {
     }
 
     fun formatMoney(amount: Long): String {
-        // pesos with thousands separator
-        return "$" + String.format(Locale("es", "CL"), "%,d", amount).replace(',', '.')
+        // pesos with thousands separator (negativos: -$1.000)
+        val sign = if (amount < 0) "-" else ""
+        val abs = kotlin.math.abs(amount)
+        return sign + "$" + String.format(Locale("es", "CL"), "%,d", abs).replace(',', '.')
     }
 
     fun formatDate(millis: Long): String {
         val d = Instant.ofEpochMilli(millis).atZone(zone).toLocalDate()
         val fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", Locale("es", "ES"))
         return Instant.ofEpochMilli(millis).atZone(zone).format(fmt)
+    }
+
+    fun formatDateShort(millis: Long): String {
+        val d = Instant.ofEpochMilli(millis).atZone(zone).toLocalDate()
+        val fmt = DateTimeFormatter.ofPattern("dd MMM", Locale("es", "ES"))
+        return d.format(fmt)
+    }
+
+    /** el DatePicker entrega milisegundos en UTC; lo pasamos al inicio del día local */
+    fun pickerDateToLocalStart(utcMillis: Long): Long {
+        val date = Instant.ofEpochMilli(utcMillis).atZone(java.time.ZoneOffset.UTC).toLocalDate()
+        return date.atStartOfDay(zone).toInstant().toEpochMilli()
+    }
+
+    fun formatDueDate(millis: Long): String {
+        val d = Instant.ofEpochMilli(millis).atZone(zone).toLocalDate()
+        val fmt = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale("es", "ES"))
+        return d.format(fmt)
+    }
+
+    fun isOverdue(dueDate: Long?, now: Long = System.currentTimeMillis()): Boolean =
+        dueDate != null && dueDate < dayStartMillis(now)
+
+    fun addMonths(millis: Long, months: Long): Long {
+        val d = Instant.ofEpochMilli(millis).atZone(zone).toLocalDate().plusMonths(months)
+        return d.atStartOfDay(zone).toInstant().toEpochMilli()
+    }
+
+    fun addWeeks(millis: Long, weeks: Long): Long {
+        val d = Instant.ofEpochMilli(millis).atZone(zone).toLocalDate().plusWeeks(weeks)
+        return d.atStartOfDay(zone).toInstant().toEpochMilli()
+    }
+
+    /** próximo vencimiento al pagar una cuota: un mes después (nunca en el pasado) */
+    fun nextDueDate(currentDue: Long?, now: Long = System.currentTimeMillis()): Long {
+        val today = dayStartMillis(now)
+        var next = addMonths(currentDue ?: today, 1)
+        while (next < today) next = addMonths(next, 1)
+        return next
+    }
+
+    /** milisegundos que faltan para el próximo martes 00:00 (inicio de semana) */
+    fun millisUntilNextWeek(now: Long = System.currentTimeMillis()): Long {
+        val ws = weekStartMillis(now)
+        val next = Instant.ofEpochMilli(ws).atZone(zone).toLocalDate()
+            .plusDays(7).atStartOfDay(zone).toInstant().toEpochMilli()
+        return (next - now).coerceAtLeast(1000L)
     }
 
     fun formatTime(millis: Long): String {
