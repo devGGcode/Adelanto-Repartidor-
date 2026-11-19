@@ -2,6 +2,7 @@ package com.example.adelanto.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Inbox
+import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -107,7 +109,7 @@ fun DebtsScreen(debtRepo: DebtRepository, nav: NavController) {
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Total por pagar", fontSize = 12.sp, color = appMuted(), fontWeight = FontWeight.Medium)
+                        Text("Total de cuotas por pagar", fontSize = 12.sp, color = appMuted(), fontWeight = FontWeight.Medium)
                         Text(
                             WeekUtils.formatMoney(state.total),
                             fontSize = 26.sp,
@@ -123,6 +125,57 @@ fun DebtsScreen(debtRepo: DebtRepository, nav: NavController) {
                             fontSize = 12.sp,
                             color = appMuted()
                         )
+                        Spacer(Modifier.height(12.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(appBg())
+                                .padding(horizontal = 10.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(appPrimaryLight()),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Filled.Receipt,
+                                    contentDescription = null,
+                                    tint = appPrimary(),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                            Column(modifier = Modifier.weight(1f).padding(start = 10.dp)) {
+                                Text(
+                                    "Total absoluto",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = appText()
+                                )
+                                Text(
+                                    "Todas las cuotas restantes",
+                                    fontSize = 10.5.sp,
+                                    color = appMuted()
+                                )
+                            }
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(
+                                    WeekUtils.formatMoney(state.pending.sumOf { DebtUtils.remainingAmount(it) }),
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = appText()
+                                )
+                                Text(
+                                    "REFERENCIA",
+                                    fontSize = 9.sp,
+                                    color = appMuted(),
+                                    letterSpacing = 0.4.sp
+                                )
+                            }
+                        }
                         if (state.goals.isNotEmpty()) {
                             Spacer(Modifier.height(10.dp))
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -146,6 +199,7 @@ fun DebtsScreen(debtRepo: DebtRepository, nav: NavController) {
                     DebtCard(
                         debt = d,
                         onToggleGoal = { vm.toggleGoal(d) },
+                        onEdit = { nav.navigate("editDebt/${d.id}") },
                         onAction = { vm.payInstallment(d) },
                         onDelete = { vm.delete(d) }
                     )
@@ -213,15 +267,19 @@ private fun DebtCard(
     settled: Boolean = false,
     onToggleGoal: () -> Unit,
     onAction: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onEdit: (() -> Unit)? = null
 ) {
     val overdue = !settled && WeekUtils.isOverdue(debt.dueDate)
     val totalCuotas = debt.installments.coerceAtLeast(1)
     val shownAmount = if (settled) debt.amount else DebtUtils.nextPayment(debt)
+    val saldo = DebtUtils.remainingAmount(debt)
     val nextCuota = DebtUtils.nextInstallment(debt)
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (onEdit != null) Modifier.clickable { onEdit?.invoke() } else Modifier),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = appCard()),
         border = BorderStroke(1.dp, if (debt.isGoal && !settled) appPrimary() else appBorder()),
@@ -280,7 +338,7 @@ private fun DebtCard(
                 }
                 if (totalCuotas > 1 && !settled) {
                     Text(
-                        "Total ${WeekUtils.formatMoney(debt.amount)}",
+                        "Saldo ${WeekUtils.formatMoney(saldo)}",
                         fontSize = 11.5.sp,
                         color = appMuted(),
                         maxLines = 1

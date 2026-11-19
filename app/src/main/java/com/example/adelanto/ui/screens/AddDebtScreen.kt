@@ -110,7 +110,7 @@ fun AddDebtScreen(debtRepo: DebtRepository, nav: NavController) {
             OutlinedTextField(
                 value = amount,
                 onValueChange = { amount = it.filter { c -> c.isDigit() } },
-                label = { Text("Monto total") },
+                label = { Text("Valor de cada cuota") },
                 leadingIcon = { Text("$") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -150,7 +150,7 @@ fun AddDebtScreen(debtRepo: DebtRepository, nav: NavController) {
                 )
                 if (amountValue > 0 && cuotas > 1) {
                     Text(
-                        "${cuotas} cuotas de ${WeekUtils.formatMoney(amountValue / cuotas)}",
+                        "${cuotas} cuotas de ${WeekUtils.formatMoney(amountValue)} · Total ${WeekUtils.formatMoney(amountValue * cuotas)}",
                         fontSize = 12.sp,
                         color = appMuted(),
                         modifier = Modifier.padding(start = 4.dp, top = 4.dp)
@@ -236,16 +236,18 @@ fun AddDebtScreen(debtRepo: DebtRepository, nav: NavController) {
                     if (a == null || a <= 0) { error = "Ingresa un monto válido"; return@Button }
                     if (!isFixedMonthly && c < 1) { error = "Las cuotas deben ser 1 o más"; return@Button }
                     scope.launch {
+                        val total = if (!isFixedMonthly && c > 1) a * c else a
                         debtRepo.insert(
                             DebtEntity(
                                 type = DebtType.PAGAR,
                                 name = name.trim(),
-                                amount = a,
+                                amount = total,
                                 note = note.ifBlank { null },
                                 createdAt = System.currentTimeMillis(),
                                 status = "pendiente",
                                 dueDate = dueDate,
                                 installments = c,
+                                installmentAmount = a,
                                 isFixedMonthly = isFixedMonthly,
                                 priority = priority
                             )

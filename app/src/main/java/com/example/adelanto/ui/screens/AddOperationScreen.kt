@@ -43,7 +43,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddOperationScreen(repo: OperationRepository, nav: NavController) {
+fun AddOperationScreen(repo: OperationRepository, nav: NavController, editId: Long? = null) {
     var opType by remember { mutableStateOf(OpType.FULL) }
     var method by remember { mutableStateOf(PayMethod.EFECTIVO) }
     var collectionMethod by remember { mutableStateOf(PayMethod.EFECTIVO) }
@@ -56,9 +56,24 @@ fun AddOperationScreen(repo: OperationRepository, nav: NavController) {
     var expanded by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
+    // al editar, carga los datos de la operación existente
+    androidx.compose.runtime.LaunchedEffect(editId) {
+        if (editId != null) {
+            val op = repo.getById(editId)
+            if (op != null) {
+                opType = op.type
+                method = op.method
+                collectionMethod = op.collectionMethod
+                payment = op.paymentAmount?.toString() ?: ""
+                collection = op.collectionAmount?.toString() ?: ""
+                note = op.note ?: ""
+            }
+        }
+    }
+
     // carga solo los pagos SIN vincular, y refresca cada vez que se abre el menú
     androidx.compose.runtime.LaunchedEffect(opType, expanded) {
-        if (opType == OpType.COLLECTION) {
+        if (editId == null && opType == OpType.COLLECTION) {
             pending = repo.getPendingPayments(WeekUtils.weekStartMillis())
             if (linkedId != null && pending.none { it.id == linkedId }) linkedId = null
         }
@@ -68,7 +83,7 @@ fun AddOperationScreen(repo: OperationRepository, nav: NavController) {
         containerColor = com.example.adelanto.ui.theme.appBg(),
         topBar = {
             TopAppBar(
-                title = { Text("Nueva operación", color = com.example.adelanto.ui.theme.appText()) },
+                title = { Text(if (editId == null) "Nueva operación" else "Editar operación", color = com.example.adelanto.ui.theme.appText()) },
                 colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(containerColor = com.example.adelanto.ui.theme.appBg())
             )
         }
@@ -154,7 +169,7 @@ fun AddOperationScreen(repo: OperationRepository, nav: NavController) {
                 Spacer(Modifier.height(16.dp))
             }
 
-            if (opType == OpType.COLLECTION) {
+            if (opType == OpType.COLLECTION && editId == null) {
                 ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
                     OutlinedTextField(
                         value = linkedId?.let { id -> pending.find { it.id == id }?.let { "Pago " + WeekUtils.formatMoney(it.paymentAmount ?: 0L) } } ?: "Cobro independiente",
@@ -245,6 +260,64 @@ fun AddOperationScreen(repo: OperationRepository, nav: NavController) {
             Spacer(Modifier.height(24.dp))
             Button(
                 onClick = {
+                    if (editId != null) {
+                        val p = payment.toLongOrNull()
+                        val c = collection.toLongOrNull()
+                        val newType = opType
+                        var newPayment: Long? = null
+                        var newCollection: Long? = null
+                        var newProfit = 0L
+                        var newStatus = "pending"
+                        when (newType) {
+                            OpType.PAYMENT -> {
+                                if (p == null || p <= 0) { error = "Ingresa monto pagado"; return@Button }
+                                newPayment = p
+                                newCollection = null
+                                newProfit = 0
+                                newStatus = "pending"
+                            }
+                            OpType.COLLECTION -> {
+                                if (c == null || c <= 0) { error = "Ingresa monto cobrado"; return@Button }
+                                newPayment = null
+                                newCollection = c
+                                newProfit = c
+                                newStatus = "standalone"
+                            }
+                            OpType.FULL -> {
+                                if (p == null || p <= 0) { error = "Ingresa monto pagado"; return@Button }
+                                if (c == null || c <= 0) { error = "Ingresa monto cobrado"; return@Button }
+                                newPayment = p
+                                newCollection = c
+                                newProfit = c - p
+                                newStatus = "resolved"
+                            }
+                        }
+                        val finalCollectionMethod = if (newType == OpType.FULL) collectionMethod else method
+                        scope.launch {
+                            val original = repo.getById(editId) ?: return@launch
+                            val changed = original.type != newType ||
+                                original.paymentAmount != newPayment ||
+                                original.collectionAmount != newCollection ||
+                                original.method != method ||
+                                original.collectionMethod != finalCollectionMethod
+                            repo.update(
+                                original.copy(
+                                    type = newType,
+                                    paymentAmount = newPayment,
+                                    collectionAmount = newCollection,
+                                    profit = newProfit,
+                                    status = newStatus,
+                                    note = note.ifBlank { null },
+                                    method = method,
+                                    collectionMethod = finalCollectionMethod,
+                                    conversionDone = if (changed) false else original.conversionDone,
+                                    conversionTotal = if (changed) false else original.conversionTotal
+                                )
+                            )
+                            nav.popBackStack()
+                        }
+                        return@Button
+                    }
                     when (opType) {
                         OpType.PAYMENT -> {
                             val p = payment.toLongOrNull()

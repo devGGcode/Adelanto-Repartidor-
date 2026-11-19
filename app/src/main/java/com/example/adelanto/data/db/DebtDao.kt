@@ -21,6 +21,9 @@ interface DebtDao {
     @Query("SELECT * FROM debts ORDER BY status ASC, createdAt DESC")
     fun observeAll(): Flow<List<DebtEntity>>
 
+    @Query("SELECT * FROM debts WHERE id = :id")
+    suspend fun getById(id: Long): DebtEntity?
+
     @Query("UPDATE debts SET isGoal = 1 WHERE id = :id")
     suspend fun markGoal(id: Long)
 

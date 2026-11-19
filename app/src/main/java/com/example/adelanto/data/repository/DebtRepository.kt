@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 
 class DebtRepository(private val dao: DebtDao) {
     fun observeAll(): Flow<List<DebtEntity>> = dao.observeAll()
+    suspend fun getById(id: Long): DebtEntity? = dao.getById(id)
     suspend fun insert(debt: DebtEntity): Long = dao.insert(debt)
     suspend fun update(debt: DebtEntity) = dao.update(debt)
     suspend fun delete(debt: DebtEntity) = dao.delete(debt)

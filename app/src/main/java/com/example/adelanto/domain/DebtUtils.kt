@@ -4,9 +4,11 @@ import com.example.adelanto.data.db.DebtEntity
 
 /** Cálculos de cuotas de una deuda por pagar */
 object DebtUtils {
-    /** valor de cada cuota (la última absorbe el redondeo) */
+    /** valor de cada cuota (la última absorbe el redondeo en deudas antiguas) */
     fun cuotaAmount(debt: DebtEntity): Long =
-        if (debt.installments <= 1) debt.amount else debt.amount / debt.installments
+        if (debt.installmentAmount > 0) debt.installmentAmount
+        else if (debt.installments <= 1) debt.amount
+        else debt.amount / debt.installments
 
     /** monto que todavía falta pagar (0 si ya está saldada) */
     fun remainingAmount(debt: DebtEntity): Long {

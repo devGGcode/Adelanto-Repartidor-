@@ -17,9 +17,15 @@ data class WeekSummary(
     val movimientosTransferencia: Long,
     val count: Int
 ) {
-    val efectivoTotal: Long get() = cajaEfectivo + movimientosEfectivo
-    val transferenciaTotal: Long get() = cajaTransferencia + movimientosTransferencia
+    // el adelanto son solo los movimientos de las operaciones;
+    // la caja inicial es una referencia visual y no se suma.
+    val efectivoTotal: Long get() = movimientosEfectivo
+    val transferenciaTotal: Long get() = movimientosTransferencia
     val total: Long get() = efectivoTotal + transferenciaTotal
+
+    val cierreEfectivo: Long get() = cajaEfectivo + movimientosEfectivo
+    val cierreTransferencia: Long get() = cajaTransferencia + movimientosTransferencia
+    val cierreTotal: Long get() = cierreEfectivo + cierreTransferencia
 }
 
 object WeekSummaryUtils {

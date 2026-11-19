@@ -27,6 +27,7 @@ data class DebtEntity(
     val dueDate: Long? = null,   // fecha de vencimiento (inicio del día, hora local)
     val installments: Int = 1,   // cantidad total de cuotas
     val paidInstallments: Int = 0, // cuotas ya pagadas
+    val installmentAmount: Long = 0, // valor de cada cuota (amount es el total)
     val isFixedMonthly: Boolean = false, // se repite todos los meses (no tiene fin de cuotas)
     val priority: DebtPriority = DebtPriority.NORMAL,
     val isGoal: Boolean = false

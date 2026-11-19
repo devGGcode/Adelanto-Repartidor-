@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.Flow
 class OperationRepository(private val dao: OperationDao) {
     fun observeByWeek(ws: Long): Flow<List<OperationEntity>> = dao.observeByWeek(ws)
     fun observeAll(): Flow<List<OperationEntity>> = dao.observeAll()
+    suspend fun getById(id: Long): OperationEntity? = dao.getById(id)
     fun observeWeekTotal(ws: Long): Flow<Long> = dao.observeWeekTotal(ws)
     fun observeWeekStarts(): Flow<List<Long>> = dao.observeWeekStarts()
     suspend fun insert(op: OperationEntity): Long = dao.insert(op)

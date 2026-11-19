@@ -77,12 +77,9 @@ object WeekUtils {
         return d.atStartOfDay(zone).toInstant().toEpochMilli()
     }
 
-    /** próximo vencimiento al pagar una cuota: un mes después (nunca en el pasado) */
+    /** próximo vencimiento al pagar una cuota: exactamente un mes después */
     fun nextDueDate(currentDue: Long?, now: Long = System.currentTimeMillis()): Long {
-        val today = dayStartMillis(now)
-        var next = addMonths(currentDue ?: today, 1)
-        while (next < today) next = addMonths(next, 1)
-        return next
+        return addMonths(currentDue ?: dayStartMillis(now), 1)
     }
 
     /** milisegundos que faltan para el próximo martes 00:00 (inicio de semana) */

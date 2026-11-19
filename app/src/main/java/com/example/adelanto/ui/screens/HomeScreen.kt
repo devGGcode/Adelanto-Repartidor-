@@ -134,14 +134,14 @@ fun HomeScreen(
         }
     }
 
-    // Desglose por método: el efectivo incluye la caja en efectivo y la transferencia la caja transferida.
-    // En un Pago + Cobro, el pago se descuenta de su método y el cobro se suma al suyo.
+    // Desglose por método: solo las operaciones. La caja es un dato de referencia
+    // (con cuánto se inició la semana) y no se suma al adelanto.
     val caja = cajaValue.toLongOrNull() ?: 0L
     val cajaTransfer = cajaTransferValue.toLongOrNull() ?: 0L
     val efectivoOps = state.operations.sumOf { OperationUtils.efectivo(it) }
     val transferOps = state.operations.sumOf { OperationUtils.transferencia(it) }
-    val efectivoTotal = efectivoOps + caja
-    val transferTotal = transferOps + cajaTransfer
+    val efectivoTotal = efectivoOps
+    val transferTotal = transferOps
     val totalAcum = efectivoTotal + transferTotal
 
     // deudas pendientes (solo por pagar; no afectan el adelanto)
@@ -416,7 +416,7 @@ fun HomeScreen(
                                 Icon(Icons.Filled.AccountBalanceWallet, contentDescription = null, tint = appWarningText(), modifier = Modifier.size(20.dp))
                             }
                             Column {
-                                Text("Dinero en Caja", fontSize = 12.sp, color = appMuted(), fontWeight = FontWeight.Medium)
+                                Text("Dinero en Caja (inicio de semana)", fontSize = 12.sp, color = appMuted(), fontWeight = FontWeight.Medium)
                                 Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                                     Column {
                                         Text("Efectivo", fontSize = 10.5.sp, color = appMuted())
@@ -497,7 +497,8 @@ fun HomeScreen(
                     OpCard(
                         op = op,
                         onDelete = { vm.delete(op) },
-                        onConversionDone = { total -> vm.markConversionDone(op, total) }
+                        onConversionDone = { total -> vm.markConversionDone(op, total) },
+                        onEdit = { nav.navigate("editOperation/${op.id}") }
                     )
                 }
             }
@@ -571,7 +572,7 @@ fun HomeScreen(
                             }
                         }
                         Spacer(Modifier.height(4.dp))
-                        Text("Caja inicial", fontSize = 11.sp, color = appMuted())
+                        Text("Caja inicial (referencia)", fontSize = 11.sp, color = appMuted())
                         Text(
                             "Efectivo ${WeekUtils.formatMoney(s.cajaEfectivo)} · Transferencia ${WeekUtils.formatMoney(s.cajaTransferencia)}",
                             fontSize = 12.sp,
@@ -580,6 +581,12 @@ fun HomeScreen(
                         Text("Movimientos", fontSize = 11.sp, color = appMuted())
                         Text(
                             "Efectivo ${WeekUtils.formatMoney(s.movimientosEfectivo)} · Transferencia ${WeekUtils.formatMoney(s.movimientosTransferencia)}",
+                            fontSize = 12.sp,
+                            color = appText()
+                        )
+                        Text("Cierre estimado (referencia)", fontSize = 11.sp, color = appMuted())
+                        Text(
+                            "Efectivo ${WeekUtils.formatMoney(s.cierreEfectivo)} · Transferencia ${WeekUtils.formatMoney(s.cierreTransferencia)}",
                             fontSize = 12.sp,
                             color = appText()
                         )
@@ -610,7 +617,8 @@ fun HomeScreen(
 fun OpCard(
     op: com.example.adelanto.data.db.OperationEntity,
     onDelete: () -> Unit,
-    onConversionDone: (Boolean) -> Unit = {}
+    onConversionDone: (Boolean) -> Unit = {},
+    onEdit: (() -> Unit)? = null
 ) {
     val badgeColor = when (op.type) {
         com.example.adelanto.data.db.OpType.PAYMENT -> appDangerBg() to appDanger()
@@ -630,7 +638,9 @@ fun OpCard(
     val profitColor = if (op.profit >= 0) appSuccess() else appDanger()
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (onEdit != null) Modifier.clickable { onEdit?.invoke() } else Modifier),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = appCard()),
         border = androidx.compose.foundation.BorderStroke(1.dp, appBorder()),

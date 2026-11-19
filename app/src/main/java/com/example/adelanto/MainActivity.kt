@@ -28,6 +28,7 @@ import com.example.adelanto.ui.screens.DebtsScreen
 import com.example.adelanto.ui.screens.HomeScreen
 import com.example.adelanto.ui.screens.HistoryScreen
 import com.example.adelanto.ui.screens.DayDetailScreen
+import com.example.adelanto.ui.screens.EditDebtScreen
 import com.example.adelanto.ui.screens.WeekSummaryScreen
 import com.example.adelanto.ui.theme.AdelantoTheme
 
@@ -103,6 +104,20 @@ fun AppNav(
         ) { back ->
             val ws = back.arguments?.getLong("weekStart") ?: 0L
             WeekSummaryScreen(repo, ws, nav)
+        }
+        composable(
+            "editDebt/{debtId}",
+            arguments = listOf(navArgument("debtId") { type = NavType.LongType })
+        ) { back ->
+            val id = back.arguments?.getLong("debtId") ?: 0L
+            EditDebtScreen(debtRepo, id, nav)
+        }
+        composable(
+            "editOperation/{opId}",
+            arguments = listOf(navArgument("opId") { type = NavType.LongType })
+        ) { back ->
+            val id = back.arguments?.getLong("opId") ?: 0L
+            AddOperationScreen(repo, nav, id)
         }
     }
 }

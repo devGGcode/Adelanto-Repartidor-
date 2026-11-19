@@ -132,7 +132,8 @@ fun DayDetailScreen(repo: OperationRepository, dayStart: Long, nav: NavControlle
                         onDelete = {},
                         onConversionDone = { total ->
                             scope.launch { repo.update(op.copy(conversionDone = true, conversionTotal = total)) }
-                        }
+                        },
+                        onEdit = { nav.navigate("editOperation/${op.id}") }
                     )
                 }
             }

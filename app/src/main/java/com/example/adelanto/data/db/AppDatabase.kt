@@ -34,7 +34,7 @@ class Converters {
         try { DebtPriority.valueOf(v) } catch (e: Exception) { DebtPriority.NORMAL }
 }
 
-@Database(entities = [OperationEntity::class, DebtEntity::class], version = 10, exportSchema = false)
+@Database(entities = [OperationEntity::class, DebtEntity::class], version = 11, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun operationDao(): OperationDao
@@ -113,12 +113,23 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // valor de cada cuota (las deudas antiguas guardaban el total)
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE debts ADD COLUMN installmentAmount INTEGER NOT NULL DEFAULT 0")
+                db.execSQL(
+                    "UPDATE debts SET installmentAmount = " +
+                        "CASE WHEN installments > 1 THEN amount / installments ELSE amount END"
+                )
+            }
+        }
+
         fun getInstance(ctx: Context): AppDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(ctx, AppDatabase::class.java, "adelanto.db")
                     .addMigrations(
                         MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
-                        MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10
+                        MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11
                     )
                     .fallbackToDestructiveMigration()
                     .build()

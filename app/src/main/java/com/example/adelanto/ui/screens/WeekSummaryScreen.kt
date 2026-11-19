@@ -146,7 +146,8 @@ fun WeekSummaryScreen(repo: OperationRepository, weekStart: Long, nav: NavContro
                             onDelete = {},
                             onConversionDone = { total ->
                                 scope.launch { repo.update(op.copy(conversionDone = true, conversionTotal = total)) }
-                            }
+                            },
+                            onEdit = { nav.navigate("editOperation/${op.id}") }
                         )
                     }
                 }
@@ -214,7 +215,7 @@ private fun SummaryCard(summary: WeekSummary) {
             Spacer(Modifier.height(10.dp))
 
             DetailRow(
-                title = "Caja inicial (inicio de semana)",
+                title = "Caja inicial (referencia)",
                 efectivo = summary.cajaEfectivo,
                 transferencia = summary.cajaTransferencia
             )
@@ -223,6 +224,12 @@ private fun SummaryCard(summary: WeekSummary) {
                 title = "Movimientos de la semana",
                 efectivo = summary.movimientosEfectivo,
                 transferencia = summary.movimientosTransferencia
+            )
+            Spacer(Modifier.height(8.dp))
+            DetailRow(
+                title = "Cierre estimado (referencia)",
+                efectivo = summary.cierreEfectivo,
+                transferencia = summary.cierreTransferencia
             )
 
             Spacer(Modifier.height(8.dp))

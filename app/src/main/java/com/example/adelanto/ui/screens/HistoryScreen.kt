@@ -50,8 +50,6 @@ fun HistoryScreen(repo: OperationRepository, nav: NavController) {
     // Corregido: Especificamos explícitamente el tipo <HistoryViewModel> para resolver la ambigüedad
     val vm: HistoryViewModel = androidx.lifecycle.viewmodel.compose.viewModel(factory = HistoryViewModel.factory(repo))
     val state by vm.uiState.collectAsState()
-    val prefs = androidx.compose.ui.platform.LocalContext.current
-        .getSharedPreferences("adelanto", android.content.Context.MODE_PRIVATE)
 
     Scaffold(
         containerColor = appBg(),
@@ -97,10 +95,8 @@ fun HistoryScreen(repo: OperationRepository, nav: NavController) {
                     if (lastWeek != d.weekStart) {
                         lastWeek = d.weekStart
                         val weekDays = daysList.filter { it.weekStart == d.weekStart }
-                        val cajaEf = prefs.getString("caja_${d.weekStart}", "")?.toLongOrNull() ?: 0L
-                        val cajaTr = prefs.getString("caja_transfer_${d.weekStart}", "")?.toLongOrNull() ?: 0L
-                        val weekEf = weekDays.sumOf { it.efectivo } + cajaEf
-                        val weekTr = weekDays.sumOf { it.transfer } + cajaTr
+                        val weekEf = weekDays.sumOf { it.efectivo }
+                        val weekTr = weekDays.sumOf { it.transfer }
                         val weekTotal = weekEf + weekTr
 
                         item(key = "week_${d.weekStart}_$i") {

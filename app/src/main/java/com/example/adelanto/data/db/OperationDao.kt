@@ -24,6 +24,9 @@ interface OperationDao {
     @Query("SELECT * FROM operations ORDER BY timestamp DESC")
     fun observeAll(): Flow<List<OperationEntity>>
 
+    @Query("SELECT * FROM operations WHERE id = :id")
+    suspend fun getById(id: Long): OperationEntity?
+
     @Query("SELECT COALESCE(SUM(profit),0) FROM operations WHERE weekStart = :weekStart")
     fun observeWeekTotal(weekStart: Long): Flow<Long>
 
