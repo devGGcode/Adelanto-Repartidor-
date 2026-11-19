@@ -22,9 +22,13 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.adelanto.data.repository.OperationRepository
 import com.example.adelanto.data.repository.DebtRepository
+import com.example.adelanto.data.repository.GoalRepository
 import com.example.adelanto.ui.screens.AddOperationScreen
 import com.example.adelanto.ui.screens.AddDebtScreen
+import com.example.adelanto.ui.screens.BackupScreen
 import com.example.adelanto.ui.screens.DebtsScreen
+import com.example.adelanto.ui.screens.GoalFormScreen
+import com.example.adelanto.ui.screens.GoalsScreen
 import com.example.adelanto.ui.screens.HomeScreen
 import com.example.adelanto.ui.screens.HistoryScreen
 import com.example.adelanto.ui.screens.DayDetailScreen
@@ -39,6 +43,9 @@ class MainActivity : ComponentActivity() {
     private val debtRepo: DebtRepository by lazy {
         (application as AdelantoApplication).debtRepository
     }
+    private val goalRepo: GoalRepository by lazy {
+        (application as AdelantoApplication).goalRepository
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,6 +59,7 @@ class MainActivity : ComponentActivity() {
                     AppNav(
                         repo = repo,
                         debtRepo = debtRepo,
+                        goalRepo = goalRepo,
                         openAddInitially = openAdd,
                         onToggleTheme = {
                             darkTheme = !darkTheme
@@ -74,6 +82,7 @@ class MainActivity : ComponentActivity() {
 fun AppNav(
     repo: OperationRepository,
     debtRepo: DebtRepository,
+    goalRepo: GoalRepository,
     openAddInitially: Boolean,
     onToggleTheme: () -> Unit
 ) {
@@ -86,7 +95,7 @@ fun AppNav(
         }
     }
     NavHost(navController = nav, startDestination = "home") {
-        composable("home") { HomeScreen(repo, debtRepo, nav, onToggleTheme) }
+        composable("home") { HomeScreen(repo, debtRepo, goalRepo, nav, onToggleTheme) }
         composable("add") { AddOperationScreen(repo, nav) }
         composable("debts") { DebtsScreen(debtRepo, nav) }
         composable("addDebt") { AddDebtScreen(debtRepo, nav) }
@@ -118,6 +127,16 @@ fun AppNav(
         ) { back ->
             val id = back.arguments?.getLong("opId") ?: 0L
             AddOperationScreen(repo, nav, id)
+        }
+        composable("backup") { BackupScreen(nav) }
+        composable("goals") { GoalsScreen(goalRepo, nav) }
+        composable("addGoal") { GoalFormScreen(goalRepo, null, nav) }
+        composable(
+            "editGoal/{goalId}",
+            arguments = listOf(navArgument("goalId") { type = NavType.LongType })
+        ) { back ->
+            val id = back.arguments?.getLong("goalId") ?: 0L
+            GoalFormScreen(goalRepo, id, nav)
         }
     }
 }

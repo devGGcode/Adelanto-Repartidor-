@@ -3,6 +3,7 @@ package com.example.adelanto.data.db
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
@@ -11,6 +12,15 @@ import kotlinx.coroutines.flow.Flow
 interface OperationDao {
     @Insert
     suspend fun insert(op: OperationEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(ops: List<OperationEntity>)
+
+    @Query("SELECT * FROM operations")
+    suspend fun getAll(): List<OperationEntity>
+
+    @Query("DELETE FROM operations")
+    suspend fun deleteAll()
 
     @Update
     suspend fun update(op: OperationEntity)

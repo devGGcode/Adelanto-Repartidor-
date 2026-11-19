@@ -24,6 +24,8 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material.icons.filled.Savings
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.ChevronRight
@@ -44,6 +46,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -63,6 +66,7 @@ import com.example.adelanto.data.db.OpType
 import com.example.adelanto.data.db.DebtType
 import com.example.adelanto.data.repository.OperationRepository
 import com.example.adelanto.data.repository.DebtRepository
+import com.example.adelanto.data.repository.GoalRepository
 import com.example.adelanto.domain.DebtUtils
 import com.example.adelanto.domain.OperationUtils
 import com.example.adelanto.domain.WeekSummary
@@ -89,6 +93,7 @@ import com.example.adelanto.ui.viewmodel.HomeViewModel
 fun HomeScreen(
     repo: OperationRepository,
     debtRepo: DebtRepository,
+    goalRepo: GoalRepository,
     nav: NavController,
     onToggleTheme: () -> Unit
 ) {
@@ -106,6 +111,18 @@ fun HomeScreen(
     LaunchedEffect(state.weekStart) {
         cajaValue = prefs.getString("caja_${state.weekStart}", "") ?: ""
         cajaTransferValue = prefs.getString("caja_transfer_${state.weekStart}", "") ?: ""
+    }
+
+    // si se importa una copia o se edita la caja, refresca los valores al instante
+    DisposableEffect(prefs, state.weekStart) {
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == null || key.startsWith("caja_")) {
+                cajaValue = prefs.getString("caja_${state.weekStart}", "") ?: ""
+                cajaTransferValue = prefs.getString("caja_transfer_${state.weekStart}", "") ?: ""
+            }
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
     }
 
     // al pasar de lunes a martes 00:00 se cambia de semana: la caja vuelve a cero
@@ -149,6 +166,10 @@ fun HomeScreen(
     val deudasPendientes = debts.filter { it.status == "pendiente" && it.type == DebtType.PAGAR }
     val porPagar = deudasPendientes.sumOf { DebtUtils.nextPayment(it) }
 
+    // metas de ahorro
+    val goals by goalRepo.observeAll().collectAsState(initial = emptyList())
+    val activeGoals = goals.filter { !it.completed }
+
     // deudas marcadas como objetivo de pago: se pagan con el adelanto
     val objetivos = deudasPendientes.filter { it.isGoal }
     val totalObjetivos = objetivos.sumOf { DebtUtils.nextPayment(it) }
@@ -179,6 +200,9 @@ fun HomeScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { nav.navigate("backup") }) {
+                        Icon(Icons.Filled.Settings, contentDescription = "Copia de seguridad", tint = appMuted())
+                    }
                     IconButton(onClick = { nav.navigate("history") }) {
                         Icon(Icons.Filled.History, contentDescription = "Historial", tint = appMuted())
                     }
@@ -468,6 +492,53 @@ fun HomeScreen(
                                     fontSize = 11.5.sp,
                                     color = appMuted()
                                 )
+                            }
+                        }
+                        Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = appMuted())
+                    }
+                }
+            }
+
+            // Metas de ahorro card
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth().clickable { nav.navigate("goals") },
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = appCard()),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, appBorder()),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp, 16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(appPrimaryLight()),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Filled.Savings, contentDescription = null, tint = appPrimary(), modifier = Modifier.size(20.dp))
+                        }
+                        Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
+                            Text("Metas de ahorro", fontSize = 12.sp, color = appMuted(), fontWeight = FontWeight.Medium)
+                            if (goals.isEmpty()) {
+                                Text("Sin metas todavía", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = appText())
+                            } else if (activeGoals.isEmpty()) {
+                                Text("Todas compradas 🎉", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = appText())
+                            } else {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text(
+                                        WeekUtils.formatMoney(activeGoals.sumOf { it.savedAmount }) +
+                                            " de " + WeekUtils.formatMoney(activeGoals.sumOf { it.targetAmount }),
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = appText()
+                                    )
+                                    Text(
+                                        if (activeGoals.size == 1) "1 meta" else "${activeGoals.size} metas",
+                                        fontSize = 11.5.sp,
+                                        color = appMuted()
+                                    )
+                                }
                             }
                         }
                         Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = appMuted())

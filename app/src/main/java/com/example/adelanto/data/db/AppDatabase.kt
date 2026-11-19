@@ -32,13 +32,24 @@ class Converters {
     @TypeConverter
     fun toDebtPriority(v: String): DebtPriority =
         try { DebtPriority.valueOf(v) } catch (e: Exception) { DebtPriority.NORMAL }
+
+    @TypeConverter
+    fun fromGoalFrequency(v: GoalFrequency): String = v.name
+    @TypeConverter
+    fun toGoalFrequency(v: String): GoalFrequency =
+        try { GoalFrequency.valueOf(v) } catch (e: Exception) { GoalFrequency.SEMANAL }
 }
 
-@Database(entities = [OperationEntity::class, DebtEntity::class], version = 11, exportSchema = false)
+@Database(
+    entities = [OperationEntity::class, DebtEntity::class, GoalEntity::class],
+    version = 12,
+    exportSchema = false
+)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun operationDao(): OperationDao
     abstract fun debtDao(): DebtDao
+    abstract fun goalDao(): GoalDao
 
     companion object {
         @Volatile private var INSTANCE: AppDatabase? = null
@@ -124,12 +135,33 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // metas de ahorro (con foto y fecha objetivo) sin borrar datos
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `goals` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`name` TEXT NOT NULL, " +
+                        "`targetAmount` INTEGER NOT NULL, " +
+                        "`savedAmount` INTEGER NOT NULL, " +
+                        "`frequency` TEXT NOT NULL, " +
+                        "`targetDate` INTEGER, " +
+                        "`photoPath` TEXT, " +
+                        "`note` TEXT, " +
+                        "`createdAt` INTEGER NOT NULL, " +
+                        "`completed` INTEGER NOT NULL, " +
+                        "`completedAt` INTEGER)"
+                )
+            }
+        }
+
         fun getInstance(ctx: Context): AppDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(ctx, AppDatabase::class.java, "adelanto.db")
                     .addMigrations(
                         MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
-                        MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11
+                        MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
+                        MIGRATION_10_11, MIGRATION_11_12
                     )
                     .fallbackToDestructiveMigration()
                     .build()
